@@ -63,7 +63,7 @@ class UserView(SecurityMixin, ViewSet, ListAPIView, CreateAPIView, RetrieveAPIVi
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
         return super().get(request, *args, **kwargs)
 
-    @extend_schema(description=_("Creat an Organization's user"))
+    @extend_schema(description=_("Create an Organization's user"))
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
         return super().post(request, *args, **kwargs)
 

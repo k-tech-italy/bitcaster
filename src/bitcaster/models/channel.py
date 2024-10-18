@@ -69,7 +69,8 @@ class Channel(LockMixin, BitcasterBaseModel):
         using: Optional[str] = None,
         update_fields: Optional[Iterable[str]] = None,
     ) -> None:
-        self.protocol = self.dispatcher.protocol
+
+        # self.protocol = self.dispatcher.protocol
         super().save(force_insert, force_update, using, update_fields)
 
     @property

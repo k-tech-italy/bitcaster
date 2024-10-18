@@ -37,8 +37,10 @@ class OrgView(SecurityMixin, ViewSet, RetrieveAPIView):
 
     serializer_class = OrgSerializer
     required_grants = [Grant.ORGANIZATION_READ]
-    lookup_url_kwarg = "org"
-    lookup_field = "slug"
+    # lookup_url_kwarg = "org"
+    lookup_field = "id"
 
     def get_queryset(self) -> QuerySet[Organization]:
-        return Organization.objects.exclude(id=Bitcaster.app.organization.pk)
+        print(self.kwargs)
+        organizationID = self.kwargs['id']
+        return Organization.objects.filter(id = organizationID)

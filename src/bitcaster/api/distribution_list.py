@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from black import datetime
 from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.utils.translation import gettext as _
@@ -70,6 +71,8 @@ class DistributionView(SecurityMixin, ViewSet, ListAPIView, CreateAPIView, Retri
         return self.project.distributionlist_set.get(pk=self.kwargs["pk"])
 
     def get_queryset(self) -> QuerySet[DistributionList]:
+        org_slug = self.kwargs.get('org')
+        print(self.kwargs)
         return DistributionList.objects.filter(
             project__organization__slug=self.kwargs["org"], project__slug=self.kwargs["prj"]
         )
@@ -91,9 +94,13 @@ class DistributionView(SecurityMixin, ViewSet, ListAPIView, CreateAPIView, Retri
             data = json.loads(request.body)
             asms = Assignment.objects.filter(address__value__in=data)
             expected = len(data)
+
             found = len(asms)
+            print(data)
+            print(*asms)
+            print(found)
             if found != expected:
-                raise serializers.ValidationError("Invalid addresses")
+                raise serializers.ValidationError("Address not found")
             dl.recipients.add(*asms)
             return Response(
                 {
@@ -106,6 +113,10 @@ class DistributionView(SecurityMixin, ViewSet, ListAPIView, CreateAPIView, Retri
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(description=_("Create a distribution list"))
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
+        return super().post(request, *args, **kwargs)
+
 
 class DistributionMembersView(SecurityMixin, ViewSet, ListAPIView):
     """
@@ -116,6 +127,12 @@ class DistributionMembersView(SecurityMixin, ViewSet, ListAPIView):
     required_grants = [Grant.DISTRIBUTION_LIST]
 
     def get_queryset(self) -> QuerySet[Assignment]:
+        print("d")
+        print(self.kwargs)
+        print(datetime.now())
+        print(Assignment.objects.filter(
+            distributionlist__id=self.kwargs["pk"]))
+
         return Assignment.objects.filter(
             distributionlist__id=self.kwargs["pk"], distributionlist__project__slug=self.kwargs["prj"]
         )

@@ -1,19 +1,31 @@
 from rest_framework import serializers
 from strategy_field.utils import fqn
 
-from bitcaster.models import Address, Application, Channel, Event, Project
+from bitcaster.models import Address, Application, Channel, Event, Project, Organization
 from bitcaster.utils.http import absolute_reverse
 
 
 class ChannelSerializer(serializers.ModelSerializer):
-    dispatcher = serializers.SerializerMethodField()
+    # dispatcher = serializers.SerializerMethodField()
+
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all(), required=False, default=None)
+    organization = serializers.PrimaryKeyRelatedField(queryset=Organization.objects.all(), required=True)
+    dispatcher = serializers.CharField(write_only=True)
 
     class Meta:
         model = Channel
-        fields = ("name", "protocol", "dispatcher", "locked")
+        fields = ("name", "protocol", "dispatcher", "locked", "organization", "project")
 
     def get_dispatcher(self, obj: Channel) -> str:
         return fqn(obj.dispatcher)
+
+    def create(self, validated_data):
+
+        organization = validated_data.pop('organization')
+        channel = Channel(organization=organization, **validated_data)
+
+        channel.save()
+        return channel
 
 
 class AddressSerializer(serializers.ModelSerializer):
