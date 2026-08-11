@@ -15,6 +15,7 @@ from .internal import LogMessage
 from .key import ApiKey
 from .log import LogEntry
 from .media import MediaFile
+from .membership import ApplicationMembership
 from .messagetemplate import MessageTemplate
 from .monitor import Monitor
 from .notification import Notification
@@ -30,6 +31,7 @@ from .userrole import UserRole
 
 __all__ = [
     "Application",
+    "ApplicationMembership",
     "Address",
     "ApiKey",
     "Assignment",

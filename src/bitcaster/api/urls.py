@@ -10,6 +10,7 @@ from .event import EventList, EventTrigger
 from .org import OrgView
 from .profile import UserProfileView
 from .project import ProjectView
+from .register import ApplicationRegisterView
 from .subscription import NotificationSubscriptionView
 from .system import LoginView, PingView
 from .unregister import ApplicationUnregisterView
@@ -72,6 +73,11 @@ urlpatterns = [
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/attachment/<slug:correlation_id>/",
         AttachmentView.as_view(),
         name="attachment-upload-with-correlation-id",
+    ),
+    path(
+        "o/<slug:org>/p/<slug:prj>/a/<slug:app>/register/",
+        ApplicationRegisterView.as_view(),
+        name="application-register",
     ),
     path(
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/unregister/<str:username>/",

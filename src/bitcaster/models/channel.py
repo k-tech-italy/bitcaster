@@ -60,6 +60,11 @@ class Channel(LockMixin, BitcasterBaseModel):
         verbose_name=_("protocol"), max_length=50, choices=MessageProtocol.choices, help_text=_("channel protocol")
     )
     active = models.BooleanField(verbose_name=_("active"), default=True, help_text=_("enable/disable channel"))
+    preferred = models.BooleanField(
+        verbose_name=_("preferred"),
+        default=False,
+        help_text=_("use this channel as default for its protocol in its scope"),
+    )
     parent = ChainedForeignKey(
         "self",
         blank=True,
@@ -84,6 +89,16 @@ class Channel(LockMixin, BitcasterBaseModel):
             models.UniqueConstraint(
                 name="%(app_label)s_%(class)s_org_project_app_name",
                 fields=("organization", "project", "name"),
+            ),
+            models.UniqueConstraint(
+                name="%(app_label)s_%(class)s_org_protocol_preferred",
+                fields=("organization", "protocol"),
+                condition=Q(preferred=True, project__isnull=True),
+            ),
+            models.UniqueConstraint(
+                name="%(app_label)s_%(class)s_org_project_protocol_preferred",
+                fields=("organization", "project", "protocol"),
+                condition=Q(preferred=True),
             ),
         ]
 

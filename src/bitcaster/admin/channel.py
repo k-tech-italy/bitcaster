@@ -44,7 +44,7 @@ class ManagementForm(forms.Form):
 
 class ChannelAdmin(TwoStepCreateMixin[Channel], LockMixinAdmin[Channel], BaseAdmin[Channel]):
     search_fields = ("name",)
-    list_display = ("name", "organization", "project", "dispatcher_", "active", "locked", "protocol")
+    list_display = ("name", "organization", "project", "dispatcher_", "active", "locked", "protocol", "preferred")
     list_filter = (
         ChannelTypeFilter,
         ("organization", LinkedAutoCompleteFilter.factory(parent=None)),

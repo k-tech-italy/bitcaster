@@ -20,6 +20,7 @@ from .group import GroupAdmin
 from .internal import LogMessageAdmin
 from .media import MediaFileAdmin
 from .member import MemberAdmin
+from .membership import ApplicationMembershipAdmin
 from .message import MessageTemplateAdmin
 from .monitor import MonitorAdmin
 from .notification import NotificationAdmin
@@ -50,6 +51,7 @@ admin.site.register([Config], CustomConstanceAdmin)
 admin.site.register(models.Address, AddressAdmin)
 admin.site.register(models.ApiKey, ApiKeyAdmin)
 admin.site.register(models.Application, ApplicationAdmin)
+admin.site.register(models.ApplicationMembership, ApplicationMembershipAdmin)
 admin.site.register(models.Assignment, AssignmentAdmin)
 admin.site.register(models.Attachment, AttachmentAdmin)
 admin.site.register(models.Channel, ChannelAdmin)

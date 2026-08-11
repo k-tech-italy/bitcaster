@@ -188,8 +188,10 @@ This endpoint retrieves a list of all members of a specific distribution list.
 ## Unregister User from Application
 
 This endpoint removes a user from all Distribution Lists pinned to a specific
-application. It is intended to be called by the remote application when a user
-is removed.
+application and deletes the user's application membership. It is intended to be
+called by the remote application when a user is removed. It is the symmetric
+counterpart of the
+[register endpoint](applications.md#register-user-as-application-member).
 
 - **Endpoint:** `POST /api/o/{org}/p/{prj}/a/{app}/unregister/{username}/`
 - **Authentication:** `ApiKeyAuthentication`
