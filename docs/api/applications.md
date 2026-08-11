@@ -37,9 +37,9 @@ This endpoint retrieves a list of all applications within a specific project.
 ## Register User as Application Member
 
 This endpoint registers a user as member of a specific application. It is
-intended to be called by the remote application when a user signs up. It is the
-symmetric counterpart of the
-[unregister endpoint](distribution_lists.md#unregister-user-from-application).
+intended to be called by the remote application when a user signs up. To stop a
+user's notifications from an application, see the
+[unsubscribe endpoint](distribution_lists.md#unsubscribe-user-from-application-distribution-lists).
 
 The endpoint is idempotent: calling it twice with the same payload does not
 fail nor duplicate records.

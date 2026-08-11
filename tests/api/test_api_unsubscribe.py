@@ -23,9 +23,9 @@ if TYPE_CHECKING:
 
 pytestmark = [pytest.mark.api, pytest.mark.django_db]
 
-org_slug = "org-unreg"
-prj_slug = "prj-unreg"
-app_slug = "app-unreg"
+org_slug = "org-unsub"
+prj_slug = "prj-unsub"
+app_slug = "app-unsub"
 
 
 @pytest.fixture
@@ -85,20 +85,20 @@ def data(admin_user: "User", system_objects: Any) -> dict[str, Any]:
     }
 
 
-def test_unregister_requires_grant(data: dict[str, Any]) -> None:
+def test_unsubscribe_requires_grant(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
     res = client.post(url)
     assert res.status_code == 403
 
 
-def test_unregister_removes_user_from_pinned_dl(data: dict[str, Any]) -> None:
+def test_unsubscribe_removes_user_from_pinned_dl(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
 
     with key_grants(
         data["key"],
@@ -116,11 +116,31 @@ def test_unregister_removes_user_from_pinned_dl(data: dict[str, Any]) -> None:
     assert data["dl_pinned"].recipients.count() == 0
 
 
-def test_unregister_ignores_non_pinned_dl(data: dict[str, Any]) -> None:
+def test_unsubscribe_keeps_membership(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+    membership = ApplicationMembershipFactory(user=data["user"], application=data["app"])
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
+
+    with key_grants(
+        data["key"],
+        [Grant.MANAGE_APPLICATION_USERS],
+        organization=data["org"],
+        project=data["prj"],
+        application=data["app"],
+    ):
+        res = client.post(url)
+
+    assert res.status_code == 200
+    assert ApplicationMembership.objects.filter(pk=membership.pk).exists()
+
+
+def test_unsubscribe_ignores_non_pinned_dl(data: dict[str, Any]) -> None:
+    client = APIClient()
+    client._key = data["key"]
+    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
 
     with key_grants(
         data["key"],
@@ -135,11 +155,11 @@ def test_unregister_ignores_non_pinned_dl(data: dict[str, Any]) -> None:
     assert data["dl_not_pinned"].recipients.count() == 1
 
 
-def test_unregister_ignores_other_app_dl(data: dict[str, Any]) -> None:
+def test_unsubscribe_ignores_other_app_dl(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
 
     with key_grants(
         data["key"],
@@ -154,13 +174,13 @@ def test_unregister_ignores_other_app_dl(data: dict[str, Any]) -> None:
     assert data["dl_other_app"].recipients.count() == 1
 
 
-def test_unregister_no_error_when_user_not_in_any_dl(data: dict[str, Any]) -> None:
+def test_unsubscribe_no_error_when_user_not_in_any_dl(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
     unknown_user: "User" = UserFactory()
     UserRoleFactory(user=unknown_user, organization=data["org"])
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{unknown_user.username}/"
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{unknown_user.username}/"
 
     with key_grants(
         data["key"],
@@ -175,33 +195,11 @@ def test_unregister_no_error_when_user_not_in_any_dl(data: dict[str, Any]) -> No
     assert res.json()["deleted"] == 0
 
 
-def test_unregister_deletes_membership(data: dict[str, Any]) -> None:
+def test_unsubscribe_uses_post_verb(data: dict[str, Any]) -> None:
     client = APIClient()
     client._key = data["key"]
     client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    ApplicationMembershipFactory(user=data["user"], application=data["app"])
-    other_membership = ApplicationMembershipFactory(user=data["user"])
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
-
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        res = client.post(url)
-
-    assert res.status_code == 200
-    assert not ApplicationMembership.objects.filter(user=data["user"], application=data["app"]).exists()
-    assert ApplicationMembership.objects.filter(pk=other_membership.pk).exists()
-
-
-def test_unregister_uses_post_verb(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unsubscribe/{data['user'].username}/"
 
     with key_grants(
         data["key"],

@@ -8,21 +8,23 @@ from django.utils.translation import gettext_lazy as _
 
 from .base import BaseView
 from ..auth.constants import Grant
-from ..models import Application, ApplicationMembership, DistributionList, User
+from ..models import Application, DistributionList, User
 
 
-class ApplicationUnregisterView(BaseView):
-    """Unregister a User from the Application in the URL path."""
+class ApplicationUnsubscribeView(BaseView):
+    """Unsubscribe a User from the distribution lists pinned to the Application in the URL path."""
 
     required_grants = [Grant.MANAGE_APPLICATION_USERS]
 
     @extend_schema(
         responses={
-            200: inline_serializer(name="ApplicationUnregisterResponse", fields={"deleted": serializers.IntegerField()})
+            200: inline_serializer(
+                name="ApplicationUnsubscribeResponse", fields={"deleted": serializers.IntegerField()}
+            )
         },
         description=_(
-            "Unregister a user from the application: removes the user from all distribution lists "
-            "pinned to the application and deletes the application membership. "
+            "Unsubscribe a user from the application: removes the user's assignments from all "
+            "distribution lists pinned to the application. "
             "Returns the number of removed distribution list entries."
         ),
     )
@@ -35,7 +37,5 @@ class ApplicationUnregisterView(BaseView):
             distributionlist__application=application,
             assignment__address__user=user,
         ).delete()
-
-        ApplicationMembership.objects.filter(user=user, application=application).delete()
 
         return Response({"deleted": deleted})
