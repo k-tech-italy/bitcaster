@@ -165,6 +165,32 @@ def test_register_is_idempotent(client: APIClient, data: dict[str, Any]) -> None
     assert res2.json()["distribution_list"] == {"name": "customers", "recipients_added": 0}
 
 
+def test_register_sets_membership_active(client: APIClient, data: dict[str, Any]) -> None:
+    with grants(data):
+        res = client.post(url(data), payload(active=False), format="json")
+
+    assert res.status_code == 201, res.json()
+    assert res.json()["membership"] == {
+        "custom_fields": {"plan": "gold"},
+        "active": False,
+        "locked": False,
+        "enable_notifications": True,
+    }
+    membership = ApplicationMembership.objects.get(user__username="member1", application=data["app"])
+    assert membership.active is False
+
+    # re-register without "active" resets it to the default (True); locked/enable_notifications untouched
+    membership.locked = True
+    membership.enable_notifications = False
+    membership.save()
+    with grants(data):
+        client.post(url(data), payload(), format="json")
+    membership.refresh_from_db()
+    assert membership.active is True
+    assert membership.locked is True
+    assert membership.enable_notifications is False
+
+
 def test_register_merges_custom_fields(client: APIClient, data: dict[str, Any]) -> None:
     with grants(data):
         client.post(url(data), payload(), format="json")

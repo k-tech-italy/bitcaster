@@ -13,6 +13,7 @@ from .project import ProjectView
 from .register import ApplicationRegisterView
 from .subscription import NotificationSubscriptionView
 from .system import LoginView, PingView
+from .unregister import ApplicationUnregisterView
 from .unsubscribe import ApplicationUnsubscribeView
 from .user import UserView
 
@@ -78,6 +79,11 @@ urlpatterns = [
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/register/",
         ApplicationRegisterView.as_view(),
         name="application-register",
+    ),
+    path(
+        "o/<slug:org>/p/<slug:prj>/a/<slug:app>/unregister/<str:username>/",
+        ApplicationUnregisterView.as_view(),
+        name="application-unregister",
     ),
     path(
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/unsubscribe/<str:username>/",

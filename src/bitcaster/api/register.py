@@ -42,6 +42,7 @@ class RegisterMembershipSerializer(serializers.Serializer[Any]):
     last_name = serializers.CharField(required=False, allow_blank=True, default="")
     email = serializers.EmailField(required=False, allow_blank=True, default="")
     custom_fields = serializers.DictField(required=False)
+    active = serializers.BooleanField(required=False, default=True)
     addresses = RegisterAddressSerializer(many=True, required=False, default=list)
     distribution_list = serializers.CharField(required=False, allow_null=True, default=None)
 
@@ -94,10 +95,13 @@ class ApplicationRegisterView(BaseView):
             UserRole.objects.get_or_create(
                 user=user, organization=application.project.organization, group=bitcaster.get_default_group()
             )
-            membership, __ = ApplicationMembership.objects.get_or_create(user=user, application=application)
+            membership, __ = ApplicationMembership.objects.get_or_create(
+                user=user, application=application, defaults={"active": data["active"]}
+            )
+            membership.active = data["active"]
             if custom_fields := data.get("custom_fields"):
                 membership.custom_fields = process_dict(membership.custom_fields, custom_fields, JsonUpdateMode.MERGE)
-                membership.save()
+            membership.save()
 
             addresses: list[dict[str, Any]] = []
             assignments: list[dict[str, Any]] = []
@@ -139,7 +143,12 @@ class ApplicationRegisterView(BaseView):
                     "email": user.email,
                 },
                 "created": created,
-                "membership": {"custom_fields": membership.custom_fields},
+                "membership": {
+                    "custom_fields": membership.custom_fields,
+                    "active": membership.active,
+                    "locked": membership.locked,
+                    "enable_notifications": membership.enable_notifications,
+                },
                 "addresses": addresses,
                 "assignments": assignments,
                 "distribution_list": (

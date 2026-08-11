@@ -63,6 +63,7 @@ fail nor duplicate records.
     "last_name": "Doe",
     "email": "jane@example.com",
     "custom_fields": {"plan": "gold"},
+    "active": true,
     "addresses": [
         {
             "value": "jane@example.com",
@@ -80,6 +81,13 @@ fail nor duplicate records.
 -   `custom_fields` (object, optional): Merged into the membership custom
     fields. Data is stored per application: registering the same user in
     another application keeps independent custom fields.
+-   `active` (boolean, optional, default `true`): Mirrors the client
+    application's "active" state for the user; each register call sets it.
+    When `false` the user receives no notifications for this application.
+    The membership also has `locked` (managed only via the Bitcaster admin)
+    and `enable_notifications` flags: notifications are delivered only when
+    the membership is active, not locked and has notifications enabled.
+    Users without a membership record are unaffected.
 -   `addresses` (list, optional): Addresses to create for the user. The address
     type (email, phone, ...) is derived from `value`; `name` defaults to the
     derived type. When `assign_to_preferred_channel` is true, an assignment is
@@ -102,7 +110,12 @@ fail nor duplicate records.
             "email": "jane@example.com"
         },
         "created": true,
-        "membership": {"custom_fields": {"plan": "gold"}},
+        "membership": {
+            "custom_fields": {"plan": "gold"},
+            "active": true,
+            "locked": false,
+            "enable_notifications": true
+        },
         "addresses": [
             {"value": "jane@example.com", "name": "work email", "type": "email"}
         ],
@@ -119,3 +132,39 @@ fail nor duplicate records.
     `MANAGE_APPLICATION_USERS` grant, or its scope does not match the URL.
 -   **`404 NOT FOUND`**: The specified organization, project, or application
     does not exist.
+
+---
+
+## Unregister User from Application
+
+This endpoint deletes the [application membership](../glossary/terms/application-member.md)
+of a user, reversing the register endpoint. Distribution list subscriptions
+are not affected — use the
+[unsubscribe endpoint](distribution_lists.md#unsubscribe-user-from-application-distribution-lists)
+for that.
+
+- **Endpoint:** `POST /api/o/{org}/p/{prj}/a/{app}/unregister/{username}/`
+- **Authentication:** `ApiKeyAuthentication`
+- **Permissions:** `manage_application_users`
+
+### URL Parameters
+
+-   `org` (string, required): The slug of the organization.
+-   `prj` (string, required): The slug of the project.
+-   `app` (string, required): The slug of the application.
+-   `username` (string, required): The username of the user to unregister.
+
+### Response
+
+-   **`200 OK`**: Returns the number of deleted memberships (`0` when the user
+    has no membership for the application — the call is idempotent).
+    ```json
+    {
+        "deleted": 1
+    }
+    ```
+-   **`401 UNAUTHORIZED`**: The API key is invalid or missing.
+-   **`403 FORBIDDEN`**: The API key does not have the required
+    `MANAGE_APPLICATION_USERS` grant, or its scope does not match the URL.
+-   **`404 NOT FOUND`**: The specified organization, project, application, or
+    user does not exist.

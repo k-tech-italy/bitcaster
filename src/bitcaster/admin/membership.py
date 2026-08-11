@@ -19,10 +19,16 @@ class ApplicationMembershipAdmin(BaseAdmin[ApplicationMembership]):
     list_display = (
         "user",
         "application",
+        "active",
+        "locked",
+        "enable_notifications",
     )
     list_filter = (
         ("user", AutoCompleteFilter),
         ("application", AutoCompleteFilter),
+        "active",
+        "locked",
+        "enable_notifications",
     )
     search_fields = ("user__username",)
     ordering = ("user__username",)
