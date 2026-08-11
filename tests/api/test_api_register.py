@@ -115,7 +115,16 @@ def test_register_requires_grant(client: APIClient, data: dict[str, Any]) -> Non
 
 def test_register_creates_everything(client: APIClient, data: dict[str, Any]) -> None:
     with grants(data):
-        res = client.post(url(data), payload(), format="json")
+        res = client.post(
+            url(data),
+            payload(
+                addresses=[
+                    {"value": "jane@example.com", "assign_to_preferred_channel": True},
+                    {"value": "+39000111222"},  # no assign_to_preferred_channel: address only
+                ]
+            ),
+            format="json",
+        )
 
     assert res.status_code == 201, res.json()
     body = res.json()
@@ -134,6 +143,10 @@ def test_register_creates_everything(client: APIClient, data: dict[str, Any]) ->
     assignment = Assignment.objects.get(address=address, channel=data["email_channel"])
     assert assignment.validated is True
     assert assignment.active is True
+
+    # the address without assign_to_preferred_channel is created but gets no assignment
+    phone = user.addresses.get(value="+39000111222")
+    assert not phone.assignments.exists()
 
     assert data["dl"].recipients.filter(pk=assignment.pk).exists()
     assert body["distribution_list"] == {"name": "customers", "recipients_added": 1}
