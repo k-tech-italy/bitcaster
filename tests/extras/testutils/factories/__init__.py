@@ -17,6 +17,7 @@ from .key import ApiKeyFactory
 from .log import LogEntryFactory
 from .media import MediaFileFactory
 from .member import MemberFactory
+from .membership import ApplicationMembershipFactory
 from .message import MessageTemplateFactory
 from .monitor import MonitorFactory
 from .notification import NotificationFactory
@@ -34,6 +35,7 @@ __all__ = [
     "AddressFactory",
     "ApiKeyFactory",
     "ApplicationFactory",
+    "ApplicationMembershipFactory",
     "AssignmentFactory",
     "AttachmentFactory",
     "BrowserFactory",

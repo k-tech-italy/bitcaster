@@ -110,5 +110,6 @@ def test_org_channels(client: APIClient, org_channel: "Channel") -> None:
             "dispatcher": fqn(org_channel.dispatcher),
             "locked": False,
             "protocol": org_channel.protocol,
+            "preferred": False,
         }
     ]

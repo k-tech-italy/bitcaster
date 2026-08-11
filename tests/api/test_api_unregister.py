@@ -6,6 +6,7 @@ import pytest
 from testutils.factories import (
     AddressFactory,
     ApiKeyFactory,
+    ApplicationMembershipFactory,
     AssignmentFactory,
     DistributionListFactory,
     EventFactory,
@@ -15,6 +16,7 @@ from testutils.factories import (
 from testutils.perms import key_grants
 
 from bitcaster.auth.constants import Grant
+from bitcaster.models import ApplicationMembership
 
 if TYPE_CHECKING:
     from bitcaster.models import Address, ApiKey, Application, Assignment, DistributionList, Event, User
@@ -171,6 +173,28 @@ def test_unregister_no_error_when_user_not_in_any_dl(data: dict[str, Any]) -> No
 
     assert res.status_code == 200
     assert res.json()["deleted"] == 0
+
+
+def test_unregister_deletes_membership(data: dict[str, Any]) -> None:
+    client = APIClient()
+    client._key = data["key"]
+    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
+    ApplicationMembershipFactory(user=data["user"], application=data["app"])
+    other_membership = ApplicationMembershipFactory(user=data["user"])
+    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+
+    with key_grants(
+        data["key"],
+        [Grant.MANAGE_APPLICATION_USERS],
+        organization=data["org"],
+        project=data["prj"],
+        application=data["app"],
+    ):
+        res = client.post(url)
+
+    assert res.status_code == 200
+    assert not ApplicationMembership.objects.filter(user=data["user"], application=data["app"]).exists()
+    assert ApplicationMembership.objects.filter(pk=other_membership.pk).exists()
 
 
 def test_unregister_uses_post_verb(data: dict[str, Any]) -> None:
