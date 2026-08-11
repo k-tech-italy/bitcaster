@@ -16,12 +16,12 @@ class ApplicationMembershipManager(BitcasterBaselManager["ApplicationMembership"
             application__project__organization__slug=org,
         )
 
-    def blocked_user_ids(self, application: "Application") -> "QuerySet[ApplicationMembership]":
+    def blocked_user_ids(self, application: "Application") -> "QuerySet[ApplicationMembership, int]":
         """Ids of users whose membership for the application prevents receiving notifications."""
         return (
             self.filter(application=application)
             .filter(Q(locked=True) | Q(active=False) | Q(enable_notifications=False))
-            .values("user_id")
+            .values_list("user_id", flat=True)
         )
 
 
