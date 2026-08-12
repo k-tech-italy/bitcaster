@@ -82,18 +82,19 @@ def url(data: dict[str, Any], app: "Application | None" = None) -> str:
     return f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{app.slug}/register/"
 
 
-def payload(**kwargs: Any) -> dict[str, Any]:
+def payload(with_custom_fields: bool = True, **kwargs: Any) -> dict[str, Any]:
     ret: dict[str, Any] = {
         "username": "member1",
         "first_name": "Jane",
         "last_name": "Doe",
         "email": "jane@example.com",
-        "custom_fields": {"plan": "gold"},
         "addresses": [
             {"value": "jane@example.com", "assign_to_preferred_channel": True},
         ],
         "distribution_list": "customers",
     }
+    if with_custom_fields:
+        ret |= {"custom_fields": {"plan": "gold"}}
     ret.update(kwargs)
     return ret
 
@@ -113,15 +114,20 @@ def test_register_requires_grant(client: APIClient, data: dict[str, Any]) -> Non
     assert res.status_code == 403
 
 
-def test_register_creates_everything(client: APIClient, data: dict[str, Any]) -> None:
+@pytest.mark.parametrize(
+    "with_custom_fields",
+    [True, False],
+)
+def test_register_creates_everything(with_custom_fields: bool, client: APIClient, data: dict[str, Any]) -> None:
     with grants(data):
         res = client.post(
             url(data),
             payload(
+                with_custom_fields=with_custom_fields,
                 addresses=[
                     {"value": "jane@example.com", "assign_to_preferred_channel": True},
                     {"value": "+39000111222"},  # no assign_to_preferred_channel: address only
-                ]
+                ],
             ),
             format="json",
         )
@@ -135,7 +141,7 @@ def test_register_creates_everything(client: APIClient, data: dict[str, Any]) ->
     assert user.roles.filter(organization=data["org"]).exists()
 
     membership = ApplicationMembership.objects.get(user=user, application=data["app"])
-    assert membership.custom_fields == {"plan": "gold"}
+    assert membership.custom_fields == ({"plan": "gold"} if with_custom_fields else {})
     assert user.custom_fields == {}
 
     address = user.addresses.get(value="jane@example.com")
