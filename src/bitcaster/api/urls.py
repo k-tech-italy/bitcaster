@@ -10,9 +10,11 @@ from .event import EventList, EventTrigger
 from .org import OrgView
 from .profile import UserProfileView
 from .project import ProjectView
+from .register import ApplicationRegisterView
 from .subscription import NotificationSubscriptionView
 from .system import LoginView, PingView
 from .unregister import ApplicationUnregisterView
+from .unsubscribe import ApplicationUnsubscribeView
 from .user import UserView
 
 app_name = "api"
@@ -74,9 +76,19 @@ urlpatterns = [
         name="attachment-upload-with-correlation-id",
     ),
     path(
+        "o/<slug:org>/p/<slug:prj>/a/<slug:app>/register/",
+        ApplicationRegisterView.as_view(),
+        name="application-register",
+    ),
+    path(
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/unregister/<str:username>/",
         ApplicationUnregisterView.as_view(),
         name="application-unregister",
+    ),
+    path(
+        "o/<slug:org>/p/<slug:prj>/a/<slug:app>/unsubscribe/<str:username>/",
+        ApplicationUnsubscribeView.as_view(),
+        name="application-unsubscribe",
     ),
     path(
         "o/<slug:org>/p/<slug:prj>/a/<slug:app>/n/<int:notification_pk>/subscribe/",

@@ -4,26 +4,24 @@ from rest_framework.test import APIClient
 
 import pytest
 from testutils.factories import (
-    AddressFactory,
     ApiKeyFactory,
-    AssignmentFactory,
-    DistributionListFactory,
+    ApplicationMembershipFactory,
     EventFactory,
     UserFactory,
-    UserRoleFactory,
 )
 from testutils.perms import key_grants
 
 from bitcaster.auth.constants import Grant
+from bitcaster.models import ApplicationMembership
 
 if TYPE_CHECKING:
-    from bitcaster.models import Address, ApiKey, Application, Assignment, DistributionList, Event, User
+    from bitcaster.models import ApiKey, Application, Event, User
 
 pytestmark = [pytest.mark.api, pytest.mark.django_db]
 
-org_slug = "org-unreg"
-prj_slug = "prj-unreg"
-app_slug = "app-unreg"
+org_slug = "org-unregister"
+prj_slug = "prj-unregister"
+app_slug = "app-unregister"
 
 
 @pytest.fixture
@@ -42,25 +40,8 @@ def data(admin_user: "User", system_objects: Any) -> dict[str, Any]:
     other_app: Application = other_event.application
 
     user: "User" = UserFactory()
-    UserRoleFactory(user=user, organization=app.project.organization)
-    address: "Address" = AddressFactory(user=user, value=user.email)
-    assignment: "Assignment" = AssignmentFactory(address=address)
-
-    user2: "User" = UserFactory()
-    UserRoleFactory(user=user2, organization=app.project.organization)
-    address2: "Address" = AddressFactory(user=user2, value=user2.email)
-    assignment2: "Assignment" = AssignmentFactory(address=address2)
-
-    dl_pinned: DistributionList = DistributionListFactory(project=app.project, application=app, recipients=[assignment])
-    dl_pinned_other_user: DistributionList = DistributionListFactory(
-        project=app.project, application=app, recipients=[assignment2]
-    )
-    dl_not_pinned: DistributionList = DistributionListFactory(
-        project=app.project, application=None, recipients=[assignment]
-    )
-    dl_other_app: DistributionList = DistributionListFactory(
-        project=app.project, application=other_app, recipients=[assignment]
-    )
+    membership = ApplicationMembershipFactory(user=user, application=app)
+    other_membership = ApplicationMembershipFactory(user=user, application=other_app)
 
     key: "ApiKey" = ApiKeyFactory(
         user=admin_user,
@@ -76,118 +57,71 @@ def data(admin_user: "User", system_objects: Any) -> dict[str, Any]:
         "app": app,
         "user": user,
         "key": key,
-        "dl_pinned": dl_pinned,
-        "dl_pinned_other_user": dl_pinned_other_user,
-        "dl_not_pinned": dl_not_pinned,
-        "dl_other_app": dl_other_app,
+        "membership": membership,
+        "other_membership": other_membership,
     }
 
 
-def test_unregister_requires_grant(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
-    res = client.post(url)
+@pytest.fixture
+def client(data: dict[str, Any]) -> APIClient:
+    c = APIClient()
+    c._key = data["key"]
+    c.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
+    return c
+
+
+def url(data: dict[str, Any], username: str | None = None) -> str:
+    username = username or data["user"].username
+    return f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{username}/"
+
+
+def grants(data: dict[str, Any]) -> Any:
+    return key_grants(
+        data["key"],
+        [Grant.MANAGE_APPLICATION_USERS],
+        organization=data["org"],
+        project=data["prj"],
+        application=data["app"],
+    )
+
+
+def test_unregister_requires_grant(client: APIClient, data: dict[str, Any]) -> None:
+    res = client.post(url(data))
     assert res.status_code == 403
 
 
-def test_unregister_removes_user_from_pinned_dl(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
-
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        res = client.post(url)
+def test_unregister_deletes_membership_of_url_application_only(client: APIClient, data: dict[str, Any]) -> None:
+    with grants(data):
+        res = client.post(url(data))
 
     assert res.status_code == 200
     assert res.json()["deleted"] == 1
-
-    data["dl_pinned"].refresh_from_db()
-    assert data["dl_pinned"].recipients.count() == 0
-
-
-def test_unregister_ignores_non_pinned_dl(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
-
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        client.post(url)
-
-    data["dl_not_pinned"].refresh_from_db()
-    assert data["dl_not_pinned"].recipients.count() == 1
+    assert not ApplicationMembership.objects.filter(pk=data["membership"].pk).exists()
+    assert ApplicationMembership.objects.filter(pk=data["other_membership"].pk).exists()
 
 
-def test_unregister_ignores_other_app_dl(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
+def test_unregister_is_idempotent(client: APIClient, data: dict[str, Any]) -> None:
+    with grants(data):
+        res1 = client.post(url(data))
+        res2 = client.post(url(data))
 
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        client.post(url)
-
-    data["dl_other_app"].refresh_from_db()
-    assert data["dl_other_app"].recipients.count() == 1
+    assert res1.status_code == 200
+    assert res1.json()["deleted"] == 1
+    assert res2.status_code == 200
+    assert res2.json()["deleted"] == 0
 
 
-def test_unregister_no_error_when_user_not_in_any_dl(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    unknown_user: "User" = UserFactory()
-    UserRoleFactory(user=unknown_user, organization=data["org"])
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{unknown_user.username}/"
+def test_unregister_unknown_user(client: APIClient, data: dict[str, Any]) -> None:
+    with grants(data):
+        res = client.post(url(data, "missing-user"))
 
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        res = client.post(url)
-
-    assert res.status_code == 200
-    assert res.json()["deleted"] == 0
+    assert res.status_code == 404
 
 
-def test_unregister_uses_post_verb(data: dict[str, Any]) -> None:
-    client = APIClient()
-    client._key = data["key"]
-    client.credentials(HTTP_AUTHORIZATION=f"Key {data['key'].key}")
-    url = f"/api/o/{data['org'].slug}/p/{data['prj'].slug}/a/{data['app'].slug}/unregister/{data['user'].username}/"
-
-    with key_grants(
-        data["key"],
-        [Grant.MANAGE_APPLICATION_USERS],
-        organization=data["org"],
-        project=data["prj"],
-        application=data["app"],
-    ):
-        res_get = client.get(url)
-        res_post = client.post(url)
+def test_unregister_uses_post_verb(client: APIClient, data: dict[str, Any]) -> None:
+    with grants(data):
+        res_get = client.get(url(data))
+        res_post = client.post(url(data))
 
     assert res_get.status_code == 405
     assert res_post.status_code == 200

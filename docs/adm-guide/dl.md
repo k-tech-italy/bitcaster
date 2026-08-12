@@ -60,7 +60,7 @@ own that user.
 However, when a user is removed from an Application, they should stop receiving
 notifications from Events triggered by that Application. Pinning a
 Distribution List to an Application solves this: the remote application calls
-the `unregister` endpoint, and Bitcaster automatically removes the user from
+the `unsubscribe` endpoint, and Bitcaster automatically removes the user from
 all Distribution Lists pinned to that application.
 
 ### Behaviour
@@ -74,7 +74,7 @@ all Distribution Lists pinned to that application.
 
 ### API Reference
 
-- `POST /api/o/{org}/p/{prj}/a/{app}/unregister/{username}/` — Removes a user
+- `POST /api/o/{org}/p/{prj}/a/{app}/unsubscribe/{username}/` — Removes a user
   from all Distribution Lists pinned to the application. Requires the new
   `MANAGE_APPLICATION_USERS` grant.
 

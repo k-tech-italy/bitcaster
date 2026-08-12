@@ -18,6 +18,7 @@ from bitcaster.utils.filtering import FilterManager
 from .assignment import Assignment
 from .choices import FILTERING, FILTERING_DYNAMIC, FILTERING_EXTERNAL, FILTERING_NONE, FILTERING_SUBSCRIPTION
 from .distribution import DistributionList
+from .membership import ApplicationMembership
 from .mixins import BaseQuerySet, BitcasterBaseModel, BitcasterBaselManager
 from .user import User
 
@@ -171,24 +172,27 @@ class Notification(BitcasterBaseModel):
             return obj
 
         if self.policy == FILTERING_SUBSCRIPTION:
-            return self.get_subscription_pending_subscriptions(delivered, channel)
-        if self.policy == FILTERING_DYNAMIC and self.recipients_filter:
-            rules = self.recipients_filter
-            if context:
-                rules = render_recursive(rules, Context(context))
-            included, excluded = FilterManager.parse(rules)
-            users = User.objects.filter(included).exclude(excluded)
-        elif self.policy == FILTERING_EXTERNAL and api_filtering:
-            rules = api_filtering
-            if context:
-                rules = render_recursive(rules, Context(context))
-            included, excluded = FilterManager.parse(rules)
-            users = User.objects.filter(included).exclude(excluded)
+            qs = self.get_subscription_pending_subscriptions(delivered, channel)
         else:
-            users = User.objects.filter(is_active=True)
-        if self.policy in [FILTERING_DYNAMIC, FILTERING_EXTERNAL]:
-            return self.get_dynamic_pending_subscriptions(delivered, channel, filter_users=users)
-        return self.get_distributionlist_pending_subscriptions(delivered, channel, filter_users=users)
+            if self.policy == FILTERING_DYNAMIC and self.recipients_filter:
+                rules = self.recipients_filter
+                if context:
+                    rules = render_recursive(rules, Context(context))
+                included, excluded = FilterManager.parse(rules)
+                users = User.objects.filter(included).exclude(excluded)
+            elif self.policy == FILTERING_EXTERNAL and api_filtering:
+                rules = api_filtering
+                if context:
+                    rules = render_recursive(rules, Context(context))
+                included, excluded = FilterManager.parse(rules)
+                users = User.objects.filter(included).exclude(excluded)
+            else:
+                users = User.objects.filter(is_active=True)
+            if self.policy in [FILTERING_DYNAMIC, FILTERING_EXTERNAL]:
+                qs = self.get_dynamic_pending_subscriptions(delivered, channel, filter_users=users)
+            else:
+                qs = self.get_distributionlist_pending_subscriptions(delivered, channel, filter_users=users)
+        return qs.exclude(address__user_id__in=ApplicationMembership.objects.blocked_user_ids(self.application))
 
     def get_subscription_pending_subscriptions(
         self, delivered: list[str | int], channel: "Channel"

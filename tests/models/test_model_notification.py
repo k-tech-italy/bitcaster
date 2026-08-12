@@ -164,6 +164,39 @@ def test_get_pending_subscriptions(data: "Context", recipients_filter, api_filte
 
 
 @pytest.mark.parametrize(
+    "locked, active, enable_notifications, expected",
+    [
+        pytest.param(False, True, True, 10, id="receiving"),
+        pytest.param(True, True, True, 9, id="locked"),
+        pytest.param(False, False, True, 9, id="inactive"),
+        pytest.param(False, True, False, 9, id="notifications-disabled"),
+    ],
+)
+def test_get_pending_subscriptions_membership_gating(
+    data: "Context", locked: bool, active: bool, enable_notifications: bool, expected: int
+) -> None:
+    from testutils.factories import ApplicationMembershipFactory, NotificationFactory
+
+    member = data["assignments"][0].address.user
+    ApplicationMembershipFactory(
+        user=member,
+        application=data["event"].application,
+        locked=locked,
+        active=active,
+        enable_notifications=enable_notifications,
+    )
+    # membership for another application must not interfere
+    ApplicationMembershipFactory(user=data["assignments"][1].address.user, locked=True, active=False)
+
+    notification = NotificationFactory.create(
+        event=data["event"], policy=FILTERING_NONE, distribution=data["distribution"]
+    )
+    qs = notification.get_pending_subscriptions(delivered=[], channel=data["channel"], api_filtering=None)
+    assert qs.count() == expected
+    assert (data["assignments"][0] in qs) is (expected == 10)
+
+
+@pytest.mark.parametrize(
     "rule, payload, expected",
     [
         # JMESPath inline syntax

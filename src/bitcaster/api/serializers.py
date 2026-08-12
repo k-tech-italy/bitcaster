@@ -11,7 +11,7 @@ class ChannelSerializer(serializers.ModelSerializer[Channel]):
 
     class Meta:
         model = Channel
-        fields = ("name", "protocol", "dispatcher", "locked")
+        fields = ("name", "protocol", "dispatcher", "locked", "preferred")
 
     def get_dispatcher(self, obj: Channel) -> str:
         return fqn(obj.dispatcher)

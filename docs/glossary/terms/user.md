@@ -1,6 +1,9 @@
 ---
 description:  ""
 template: term.html
+terms:
+  - glossary:
+    - User
 ---
 
 # User

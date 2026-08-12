@@ -11,6 +11,7 @@ from .eventsimulation import EventSimulationAdmin
 from .group import GroupAdmin
 from .internal import LogMessageAdmin
 from .media import MediaFileAdmin
+from .membership import ApplicationMembershipAdmin
 from .message import MessageTemplateAdmin
 from .monitor import MonitorAdmin
 from .notification import NotificationAdmin
@@ -29,6 +30,7 @@ __all__ = [
     "AddressAdmin",
     "ApiKeyAdmin",
     "ApplicationAdmin",
+    "ApplicationMembershipAdmin",
     "AssignmentAdmin",
     "AttachmentAdmin",
     "ChannelAdmin",
