@@ -261,7 +261,7 @@ dependencies = [
     { name = "django-adminactions" },
     { name = "django-adminfilters" },
     { name = "django-allauth", extra = ["mfa"] },
-    { name = "django-anymail" },
+    { name = "django-anymail", extra = ["amazon-ses"] },
     { name = "django-concurrency" },
     { name = "django-constance" },
     { name = "django-csp" },
@@ -297,7 +297,6 @@ dependencies = [
     { name = "jmespath" },
     { name = "jsonschema" },
     { name = "lxml" },
-    { name = "mailjet-rest" },
     { name = "msgpack" },
     { name = "oauthlib" },
     { name = "phonenumbers" },
@@ -319,6 +318,7 @@ dependencies = [
     { name = "sentry-sdk" },
     { name = "setuptools" },
     { name = "slack-sdk" },
+    { name = "sqlparse" },
     { name = "twilio" },
     { name = "user-agents" },
 ]
@@ -357,6 +357,7 @@ dev = [
     { name = "pytest-repeat" },
     { name = "pytest-socket" },
     { name = "pytest-testmon" },
+    { name = "pytest-timeout" },
     { name = "pytest-xdist", extra = ["psutil"] },
     { name = "pyupgrade" },
     { name = "responses" },
@@ -418,7 +419,7 @@ requires-dist = [
     { name = "django-adminactions", specifier = ">=2.3" },
     { name = "django-adminfilters", specifier = ">=2.6" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.16.1" },
-    { name = "django-anymail", specifier = ">=10.3" },
+    { name = "django-anymail", extras = ["amazon-ses"], specifier = ">=10.3" },
     { name = "django-concurrency", specifier = ">=2.5" },
     { name = "django-constance", specifier = ">=3.1" },
     { name = "django-csp", specifier = ">=3.8" },
@@ -454,7 +455,6 @@ requires-dist = [
     { name = "jmespath", specifier = ">=1.0.1" },
     { name = "jsonschema", specifier = ">=4.24" },
     { name = "lxml", specifier = ">=6.1" },
-    { name = "mailjet-rest", specifier = ">=1.3.4" },
     { name = "msgpack", specifier = ">=1.2.1" },
     { name = "oauthlib", specifier = ">=3.3.1" },
     { name = "phonenumbers", specifier = ">=9" },
@@ -476,6 +476,7 @@ requires-dist = [
     { name = "sentry-sdk", specifier = ">=1.43" },
     { name = "setuptools", specifier = ">=75.3" },
     { name = "slack-sdk", specifier = ">=3.27.1" },
+    { name = "sqlparse", specifier = ">=0.6" },
     { name = "twilio", specifier = ">=9.10.5" },
     { name = "user-agents", specifier = ">=2.2" },
 ]
@@ -514,6 +515,7 @@ dev = [
     { name = "pytest-repeat", specifier = ">=0.9.3" },
     { name = "pytest-socket", specifier = ">=0.7" },
     { name = "pytest-testmon", specifier = ">=2.1.1" },
+    { name = "pytest-timeout", specifier = ">=2.3.1" },
     { name = "pytest-xdist", extras = ["psutil"], specifier = ">=3.8" },
     { name = "pyupgrade", specifier = ">=3.21.2" },
     { name = "responses", specifier = ">=0.25" },
@@ -1136,6 +1138,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/00/43/f0aadb31f2c58afcd9f001f4291998cbd6d289898167e79d908506fc6faf/django_anymail-15.0.tar.gz", hash = "sha256:23d8ab6589afe8cc1ae7665c26879814ad192f4c3ed837a2a1868b0a056869e0", size = 106985, upload-time = "2026-04-18T20:44:19.237Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/75/d1/daae99ec3b30886010a499975880ec20c32c622bee6b92c226b715e42f0c/django_anymail-15.0-py3-none-any.whl", hash = "sha256:64d33dd1084bfc8e4e12245f56629be40aa0b0498fc7fc7544d87b9b2048be1e", size = 147229, upload-time = "2026-04-18T20:44:17.323Z" },
+]
+
+[package.optional-dependencies]
+amazon-ses = [
+    { name = "boto3" },
 ]
 
 [[package]]
@@ -2230,18 +2237,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/f2/1a2b9f1b7a49d45495369be7ef9ad05b262930f2eab3e3145706fca8083f/lxml-6.1.1-cp313-cp313-win32.whl", hash = "sha256:3483644525531e1d5762b0c44a8e18b6efba321b6dcf8a8952de10b037618bca", size = 3596903, upload-time = "2026-05-18T19:17:29.863Z" },
     { url = "https://files.pythonhosted.org/packages/e6/99/f4ffb024f238eec2131aaa09f3278fb6129cf892741bf68e1fc1afb8c100/lxml-6.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:a10bd2fd62e8ce916ececb342f348f190724a098c1faa056fdfb2a22ad5e8660", size = 3995869, upload-time = "2026-05-18T19:18:02.596Z" },
     { url = "https://files.pythonhosted.org/packages/d1/53/70eb8c5c6037f27448f1e3c54ebede9545a801ae63f0a7254afca4fe8e45/lxml-6.1.1-cp313-cp313-win_arm64.whl", hash = "sha256:424aa57aca0897eb922aef34395bd1289b3b6f04e6bae20ea123c0c7e333cffc", size = 3658490, upload-time = "2026-05-19T19:22:53.846Z" },
-]
-
-[[package]]
-name = "mailjet-rest"
-version = "1.7.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b2/c2/f709f5e281b48325608c1ae21ce8f7712b033d991c844d821790a632713a/mailjet_rest-1.7.0.tar.gz", hash = "sha256:e8f3f7db2d132417465e72cad555af582712076332e08b781821a5a3bbc00ac9", size = 54072, upload-time = "2026-06-12T10:43:39.535Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4e/8a/9da0a7a81a097ad76b515dbc666f70f670b890f98b5bf6f47fb60c287cd5/mailjet_rest-1.7.0-py3-none-any.whl", hash = "sha256:c1d039eed9527a12bfe493e0e92bb62e74646d4269a44f2c33436a7fde197e16", size = 36119, upload-time = "2026-06-12T10:43:38.409Z" },
 ]
 
 [[package]]
@@ -3794,6 +3789,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-timeout"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/82/4c9ecabab13363e72d880f2fb504c5f750433b2b6f16e99f4ec21ada284c/pytest_timeout-2.4.0.tar.gz", hash = "sha256:7e68e90b01f9eff71332b25001f85c75495fc4e3a836701876183c4bcfd0540a", size = 17973, upload-time = "2025-05-05T19:44:34.99Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/b6/3127540ecdf1464a00e5a01ee60a1b09175f6913f0644ac748494d9c4b21/pytest_timeout-2.4.0-py3-none-any.whl", hash = "sha256:c42667e5cdadb151aeb5b26d114aff6bdf5a907f176a007a30b940d3d865b5c2", size = 14382, upload-time = "2025-05-05T19:44:33.502Z" },
+]
+
+[[package]]
 name = "pytest-xdist"
 version = "3.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4333,11 +4340,11 @@ wheels = [
 
 [[package]]
 name = "sqlparse"
-version = "0.5.5"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/d3/3f06a1006f2261d1342aefb3c71eed02f5d4ca5bdbecd86ebc12ad38306e/sqlparse-0.6.0.tar.gz", hash = "sha256:113c35c75365ab9cc9c7231d68c6428fb11c085fc8e9eb1ad659b7ddbf6cd2b9", size = 178477, upload-time = "2026-08-13T19:16:06.396Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f", size = 50070, upload-time = "2026-08-13T19:16:04.062Z" },
 ]
 
 [[package]]
